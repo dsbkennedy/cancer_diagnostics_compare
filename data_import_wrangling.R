@@ -1,5 +1,5 @@
 # Load packages -----------------------------------------------------------
-pacman::p_load(tidyverse,janitor,readxl,scales,gghighlight, lubridate)
+pacman::p_load(tidyverse,janitor,readxl,scales,gghighlight, lubridate, skimr)
 # Load  data --------------------------------------------------------------
 url_stem <- 'https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/'
 # PRE-COVID
@@ -19,8 +19,8 @@ rm(list = ls()) # Clean up workspace
 all_months <- c('apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar')  # List months in order they appear in data
 first9_months <- all_months[1:9] # First 9 months are used to assign calendar year
 
-#### Newer format
-new_format_fn <- function(x,y) {
+#### Format excel files
+format_fn <- function(x,y) {
   filepath <- paste0('data/did_',x,'_',y,'.xlsx') # Generate filepath
   raw <- read_xlsx(filepath, sheet='Provider', skip=12) %>% # Skip extraneous rows
     clean_names() %>%  # Clean column names
@@ -28,15 +28,18 @@ new_format_fn <- function(x,y) {
     select(-contains('year')) %>% # Remove year variable
     pivot_longer(-c(1:4)) %>% # Reshape data
     rename(month=name) %>% # Rename variable to month
-    mutate(year=case_when(month %in% first9_months ~ x, TRUE ~ y)) # Label year based on first 9 months
+    mutate(year=case_when(month %in% first9_months ~ x, TRUE ~ y),
+           month_year=as.yearmon(paste0(month,'-', year), "%b-%y"),
+           month_factor=month(month_year, label=TRUE),
+           value=as.numeric(value)) 
 }
 
-raw_18_19_20_21_22 <- map2(c(18:21), c(19:22), new_format_fn) %>% bind_rows # Run code for additional 5 years of data
-
-rm(list=setdiff(ls(), c("raw_18_19_20_21_22"))) # Clean up workspace
+analysis_data <- map2(c(18:21), c(19:22), format_fn) %>% bind_rows # Run code for additional 5 years of data
+skim(analysis_data) # Overview of data completeness
+# Counts <5 are reported as "*" to avoid identifying individuals. 
 
 # Graph to check data
-raw_18_19_20_21_22 %>%  filter(modality =='Plain Radiography') %>% 
+analysis_data %>%  filter(modality =='Plain Radiography') %>% 
   mutate(month_year=as.yearmon(paste0(month,'-', year), "%b-%y")) %>% 
   mutate(month_factor=month(month_year, label=TRUE)) %>% 
   mutate(value=as.numeric(value)) %>% 
