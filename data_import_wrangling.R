@@ -30,11 +30,11 @@ format_fn <- function(x,y) {
     mutate(year=case_when(month %in% first9_months ~ x, TRUE ~ y),
            month_year=as.yearmon(paste0(month,'-', year), "%b-%y"),
            month_factor=month(month_year, label=TRUE),
-           value=as.numeric(value))
+           count=as.numeric(value)) %>% select(-c(month, value))
 }
-analysis_data <- map2(c(18:21), c(19:22), format_fn) %>% bind_rows # Run code for additional 5 years of data
+analysis_data <- map2(c(18:21), c(19:22), format_fn) %>% bind_rows # Run code for 4 years of data
 skim(analysis_data) # Overview of data completeness
-# Counts <5 are reported as "*" to avoid identifying individuals.
+# Counts <5 are reported as "*" to avoid identifying individuals and are therefore "missing" in the analysis_data.
 
 # Graph to check data
 analysis_data %>%  filter(modality =='Plain Radiography') %>% 
