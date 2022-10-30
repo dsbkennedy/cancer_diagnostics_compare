@@ -38,11 +38,8 @@ skim(analysis_data) # Overview of data completeness
 
 # Graph to check data
 analysis_data %>%  filter(modality =='Plain Radiography') %>% 
-  mutate(month_year=as.yearmon(paste0(month,'-', year), "%b-%y")) %>% 
-  mutate(month_factor=month(month_year, label=TRUE)) %>% 
-  mutate(value=as.numeric(value)) %>% 
   group_by(year, month_factor, modality) %>% 
-  summarise(total=sum(value, na.rm=TRUE)) %>% 
+  summarise(total=sum(count, na.rm=TRUE)) %>% 
   ungroup() %>% 
   ggplot(aes(x=month_factor, y=total, group=year)) +
   geom_line(aes(color=as.factor(year))) +
