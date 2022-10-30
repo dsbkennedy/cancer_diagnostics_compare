@@ -1,5 +1,6 @@
 # Load packages -----------------------------------------------------------
-pacman::p_load(tidyverse,janitor,readxl,scales,gghighlight, lubridate, skimr)
+require(pacman)
+pacman::p_load(tidyverse,janitor,readxl, lubridate, skimr,zoo)
 # Load  data --------------------------------------------------------------
 url_stem <- 'https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/'
 # PRE-COVID
@@ -15,13 +16,11 @@ file_names <- paste0('data/did_', c(18:21), '_', c(19:22), '.xlsx') # Make names
 safe_download <- safely(~ download.file(.x , .y, mode = "wb")) # Download files
 walk2(list_of_urls, file_names, safe_download)
 rm(list = ls()) # Clean up workspace
-
 all_months <- c('apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar')  # List months in order they appear in data
 first9_months <- all_months[1:9] # First 9 months are used to assign calendar year
-
 #### Format excel files
 format_fn <- function(x,y) {
-  filepath <- paste0('data/did_',x,'_',y,'.xlsx') # Generate filepath
+  filepath <- paste0('data/did_',x,'_',y,'.xlsx') # Generate file path
   raw <- read_xlsx(filepath, sheet='Provider', skip=12) %>% # Skip extraneous rows
     clean_names() %>%  # Clean column names
     filter(provider_name!='ENGLAND' & !is.na(provider_name)) %>% # Remove summary data
@@ -31,12 +30,11 @@ format_fn <- function(x,y) {
     mutate(year=case_when(month %in% first9_months ~ x, TRUE ~ y),
            month_year=as.yearmon(paste0(month,'-', year), "%b-%y"),
            month_factor=month(month_year, label=TRUE),
-           value=as.numeric(value)) 
+           value=as.numeric(value))
 }
-
 analysis_data <- map2(c(18:21), c(19:22), format_fn) %>% bind_rows # Run code for additional 5 years of data
 skim(analysis_data) # Overview of data completeness
-# Counts <5 are reported as "*" to avoid identifying individuals. 
+# Counts <5 are reported as "*" to avoid identifying individuals.
 
 # Graph to check data
 analysis_data %>%  filter(modality =='Plain Radiography') %>% 
